@@ -13,6 +13,7 @@ import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -54,7 +55,8 @@ public class AuthServiceImpl implements AuthService{
         );
         if(!bCryptPasswordEncoder.matches(user.getPassword(),userExists.getPassword()))
             throw new UserUnAuthorizedException("User email/password incorrect.");
-
+        if(!userExists.getIsVerified())
+            throw new UserUnAuthorizedException("User not verified. Please verify your email.");
         try{
             // build jwt secret key
             SecretKey key = Keys.hmacShaKeyFor(Decoders.BASE64.decode(secretString));
@@ -90,7 +92,7 @@ public class AuthServiceImpl implements AuthService{
 
             user.setPassword(bCryptPasswordEncoder.encode(user.getPassword()));
             user.setVerifyToken(getJwtToken());
-            user.setRoles(Collections.singletonList(getRole("USER")));
+            user.getRoles().add(getRole("USER"));
             User savedUser =  userRepository.save(user);
 
             String htmlString = emailTemplateService.welcomeEmailHtmlString(
@@ -115,6 +117,7 @@ public class AuthServiceImpl implements AuthService{
         try{
             user.setIsVerified(true);
             userRepository.save(user);
+            kafkaTemplate.send("create-user-cart",user.getId().toString());
         }catch(Exception e){
             throw new UserVerificationException("Error in verifying user." + e.getMessage());
         }
@@ -123,7 +126,8 @@ public class AuthServiceImpl implements AuthService{
     public Roles getRole(String name){
         Roles newRole = new Roles();
         newRole.setName(name);
-        return rolesRepository.findByName(name).orElse(rolesRepository.save(newRole));
+        return rolesRepository.findByName(name)
+                .orElseGet(() -> rolesRepository.save(newRole));
     }
 
     public String getJwtToken(){

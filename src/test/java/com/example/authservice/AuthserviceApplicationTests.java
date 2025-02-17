@@ -22,23 +22,22 @@ class AuthserviceApplicationTests {
     void contextLoads() {
     }
 
-    @Test
-    void storeRegisteredClientInDb(){
-        RegisteredClient oidcClient = RegisteredClient.withId(UUID.randomUUID().toString())
-                .clientId("productService")
-                .clientSecret("password")
-                .clientAuthenticationMethod(ClientAuthenticationMethod.CLIENT_SECRET_BASIC)
-                .authorizationGrantType(AuthorizationGrantType.AUTHORIZATION_CODE)
-                .authorizationGrantType(AuthorizationGrantType.REFRESH_TOKEN)
-                .redirectUri("https://oauth.pstmn.io/v1/callback")
-                .postLogoutRedirectUri("http://127.0.0.1:8080/")
-                .scope(OidcScopes.OPENID)
-                .scope(OidcScopes.PROFILE)
-                .clientSettings(ClientSettings.builder().requireAuthorizationConsent(true).build())
-                .build();
-
-        registeredClientRepository.save(oidcClient);
-
-    }
+//    @Test
+//    void storeRegisteredClientInDb(){
+//        RegisteredClient oidcClient = RegisteredClient.withId(UUID.randomUUID().toString())
+//                .clientId("public-client")
+//                .clientAuthenticationMethod(ClientAuthenticationMethod.NONE)
+//                .authorizationGrantType(AuthorizationGrantType.AUTHORIZATION_CODE)
+//                .authorizationGrantType(AuthorizationGrantType.REFRESH_TOKEN)
+//                .redirectUri("http://localhost:5173")
+//                .postLogoutRedirectUri("http://localhost:5173")
+//                .scope(OidcScopes.OPENID)
+//                .scope(OidcScopes.PROFILE)
+//                .clientSettings(ClientSettings.builder().requireAuthorizationConsent(false).requireProofKey(true).build())
+//                .build();
+//
+//        registeredClientRepository.save(oidcClient);
+//
+//    }
 
 }

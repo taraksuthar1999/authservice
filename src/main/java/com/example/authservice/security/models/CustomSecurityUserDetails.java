@@ -34,18 +34,22 @@ import java.util.*;
 public class CustomSecurityUserDetails implements UserDetails {
     private static final long serialVersionUID = 620L;
     private static final Log logger = LogFactory.getLog(User.class);
-    private String password;
+    private final String password;
     private final String username;
+
+    private final Long id;
+    private final String profile;
+    private final String name;
     private final Set<GrantedAuthority> authorities;
     private final boolean accountNonExpired;
     private final boolean accountNonLocked;
     private final boolean credentialsNonExpired;
     private final boolean enabled;
-    public CustomSecurityUserDetails( String username,  String password,  Collection<? extends GrantedAuthority> authorities) {
-        this(username, password, true, true, true, true, authorities);
+    public CustomSecurityUserDetails( String username,  String password,  Collection<? extends GrantedAuthority> authorities, String profile, String name, Long id) {
+        this(username, password, true, true, true, true, authorities, profile, name, id);
     }
 
-    public CustomSecurityUserDetails(String username, String password, boolean enabled, boolean accountNonExpired, boolean credentialsNonExpired, boolean accountNonLocked, Collection<? extends GrantedAuthority> authorities) {
+    public CustomSecurityUserDetails(String username, String password, boolean enabled, boolean accountNonExpired, boolean credentialsNonExpired, boolean accountNonLocked, Collection<? extends GrantedAuthority> authorities, String profile, String name, Long id) {
         Assert.isTrue(username != null && !"".equals(username) && password != null, "Cannot pass null or empty values to constructor");
         this.username = username;
         this.password = password;
@@ -54,6 +58,9 @@ public class CustomSecurityUserDetails implements UserDetails {
         this.credentialsNonExpired = credentialsNonExpired;
         this.accountNonLocked = accountNonLocked;
         this.authorities = Collections.unmodifiableSet(sortAuthorities(authorities));
+        this.profile = profile;
+        this.name = name;
+        this.id = id;
     }
 
     private static SortedSet<GrantedAuthority> sortAuthorities(Collection<? extends GrantedAuthority> authorities) {
@@ -85,6 +92,11 @@ public class CustomSecurityUserDetails implements UserDetails {
     public String getUsername() {
         return this.username;
     }
+
+    public String getName() { return this.name; }
+    public String getProfile() { return this.profile; }
+    public Long getId() { return this.id; }
+
 
     public boolean isEnabled() {
         return this.enabled;

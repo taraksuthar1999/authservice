@@ -2,8 +2,11 @@ package com.example.authservice.security;
 
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
+import java.security.Principal;
 import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
+import java.util.Arrays;
+import java.util.List;
 import java.util.UUID;
 
 import com.example.authservice.security.services.CustomSecurityUserDetailsService;
@@ -23,13 +26,17 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.ProviderManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
+import org.springframework.security.authorization.AuthenticatedAuthorizationManager;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.authentication.configurers.userdetails.DaoAuthenticationConfigurer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.core.AuthenticatedPrincipal;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.session.SessionRegistryImpl;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -38,6 +45,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.jackson2.SimpleGrantedAuthorityMixin;
 import org.springframework.security.oauth2.core.AuthorizationGrantType;
 import org.springframework.security.oauth2.core.ClientAuthenticationMethod;
+import org.springframework.security.oauth2.core.OAuth2AuthenticatedPrincipal;
 import org.springframework.security.oauth2.core.oidc.OidcScopes;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.server.authorization.OAuth2AuthorizationService;
@@ -48,6 +56,8 @@ import org.springframework.security.oauth2.server.authorization.config.annotatio
 import org.springframework.security.oauth2.server.authorization.config.annotation.web.configurers.OAuth2AuthorizationServerConfigurer;
 import org.springframework.security.oauth2.server.authorization.settings.AuthorizationServerSettings;
 import org.springframework.security.oauth2.server.authorization.settings.ClientSettings;
+import org.springframework.security.oauth2.server.authorization.token.OAuth2TokenClaimsContext;
+import org.springframework.security.oauth2.server.authorization.token.OAuth2TokenCustomizer;
 import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.LoginUrlAuthenticationEntryPoint;
@@ -56,6 +66,10 @@ import org.springframework.security.web.context.HttpSessionSecurityContextReposi
 import org.springframework.security.web.context.SecurityContextHolderFilter;
 import org.springframework.security.web.context.SecurityContextRepository;
 import org.springframework.security.web.util.matcher.MediaTypeRequestMatcher;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import org.springframework.web.filter.CorsFilter;
 
 @Configuration
 @EnableWebSecurity
@@ -65,7 +79,6 @@ public class SpringSecurityConfiguration {
 
     @Autowired
     CustomSecurityUserDetailsService customSecurityUserDetailsService;
-
     @Bean
     @Order(1)
     public SecurityFilterChain authorizationServerSecurityFilterChain(HttpSecurity http)
@@ -74,6 +87,7 @@ public class SpringSecurityConfiguration {
                 OAuth2AuthorizationServerConfigurer.authorizationServer();
 
         http
+                .cors(Customizer.withDefaults())
                 .securityMatcher(authorizationServerConfigurer.getEndpointsMatcher())
                 .with(authorizationServerConfigurer, (authorizationServer) ->
                         authorizationServer
@@ -88,7 +102,11 @@ public class SpringSecurityConfiguration {
                                 new LoginUrlAuthenticationEntryPoint("/login"),
                                 new MediaTypeRequestMatcher(MediaType.TEXT_HTML)
                         )
-                );
+                ).logout(logout -> logout
+                        .logoutUrl("/logout")
+                        .invalidateHttpSession(true)
+                        .deleteCookies("JSESSIONID")
+                        .logoutSuccessUrl("/login"));
 
         return http.build();
     }
@@ -97,35 +115,21 @@ public class SpringSecurityConfiguration {
     @Order(2)
     public SecurityFilterChain defaultSecurityFilterChain(HttpSecurity http)
             throws Exception {
-
-//        SecurityContextHolder.clearContext();
         http
-//                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-
-//                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-//                .authenticationManager(authenticationManager())
                 .authorizeHttpRequests((authorize) ->
                     authorize.requestMatchers("/auth/**").permitAll()
                     .anyRequest().authenticated()
                 )
+                .cors(Customizer.withDefaults())
                 .csrf(csrf -> csrf.ignoringRequestMatchers("/auth/**"))
                 // Form login handles the redirect to the login page from the
                 // authorization server filter chain
                 .authenticationManager(authenticationManager())
                 .formLogin(Customizer.withDefaults());
 
-
         return http.build();
     }
 
-//    @Bean
-//    public ObjectMapper objectMapper() {
-//        ObjectMapper mapper = new ObjectMapper();
-//        mapper.activateDefaultTyping(mapper.getPolymorphicTypeValidator(), ObjectMapper.DefaultTyping.NON_FINAL);
-//        mapper.addMixIn(CustomSecurityUserDetails.class, CustomSecurityUserDetailsMixin.class);
-//        mapper.addMixIn(SimpleGrantedAuthority.class, SimpleGrantedAuthorityMixin.class);
-//        return mapper;
-//    }
 
     @Bean
     public AuthenticationManager authenticationManager() {
@@ -138,37 +142,9 @@ public class SpringSecurityConfiguration {
 
     @Bean
     public UserDetailsService userDetailsService() {
-        SecurityContextHolder.clearContext();
-
-
-
-//        UserDetails userDetails = User.builder()
-//                .username("user")
-//                .password(bCryptPasswordEncoder.encode("password"))
-//                .roles("USER")
-//                .build();
-//
-//        return new InMemoryUserDetailsManager(userDetails);
         return customSecurityUserDetailsService;
     }
 
-//    @Bean
-//    public RegisteredClientRepository registeredClientRepository() {
-//        RegisteredClient oidcClient = RegisteredClient.withId(UUID.randomUUID().toString())
-//                .clientId("oidc-client")
-//                .clientSecret("{noop}secret")
-//                .clientAuthenticationMethod(ClientAuthenticationMethod.CLIENT_SECRET_BASIC)
-//                .authorizationGrantType(AuthorizationGrantType.AUTHORIZATION_CODE)
-//                .authorizationGrantType(AuthorizationGrantType.REFRESH_TOKEN)
-//                .redirectUri("http://127.0.0.1:8080/login/oauth2/code/oidc-client")
-//                .postLogoutRedirectUri("http://127.0.0.1:8080/")
-//                .scope(OidcScopes.OPENID)
-//                .scope(OidcScopes.PROFILE)
-//                .clientSettings(ClientSettings.builder().requireAuthorizationConsent(true).build())
-//                .build();
-//
-//        return new InMemoryRegisteredClientRepository(oidcClient);
-//    }
 
     @Bean
     public JWKSource<SecurityContext> jwkSource() {
@@ -202,11 +178,30 @@ public class SpringSecurityConfiguration {
     }
 
 //    @Bean
-//    public PasswordEncoder passwordEncoder() {
-//        return bCryptPasswordEncoder;
+//    public CorsFilter corsFilter() {
+//        CorsConfiguration config = new CorsConfiguration();
+//        config.setAllowCredentials(true); // Allow cookies and credentials
+//        config.addAllowedOrigin("http://localhost:5173"); // Allow only the frontend origin
+//        config.addAllowedHeader("*"); // Allow all headers
+//        config.addAllowedMethod("*"); // Allow all HTTP methods (GET, POST, etc.)
+//        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+//        source.registerCorsConfiguration("/**", config);
+//        return new CorsFilter(source);
 //    }
 
-
+//    @Bean
+//    public CorsConfigurationSource corsConfigurationSource() {
+//        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+//        CorsConfiguration configuration = new CorsConfiguration();
+////        configuration.setAllowedOrigins(List.of("http://localhost:5173"));
+////        configuration.setAllowedMethods(Arrays.asList("GET","POST","PUT","DELETE","OPTIONS"));
+//        configuration.addAllowedHeader("*");
+//        configuration.addAllowedMethod("*");
+//        configuration.addAllowedOrigin("http://localhost:5173");
+//        configuration.setAllowCredentials(true);
+//        source.registerCorsConfiguration("/**", configuration);
+//        return source;
+//    }
 
     @Bean
     public AuthorizationServerSettings authorizationServerSettings() {

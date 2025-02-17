@@ -24,14 +24,10 @@ public class CustomSecurityUserDetailsService implements UserDetailsService {
 
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        System.out.println(username+" <==== ");
-        Optional<User> user = userRepository.findByEmail(username);
-        System.out.println(user+" <==== ");
-        if(user.isEmpty()){
-            throw new UsernameNotFoundException("User details with given username is not found");
-        }
-        User savedUser = user.get();
-        Collection<SimpleGrantedAuthority> roles = savedUser.getRoles().stream().map(role -> new SimpleGrantedAuthority(role.getName())).collect(Collectors.toList());
-        return new CustomSecurityUserDetails(savedUser.getEmail(),savedUser.getPassword(),roles);
+        User user = userRepository.findByEmail(username).orElseThrow(
+                () -> new UsernameNotFoundException("User details with given username is not found")
+        );
+        Collection<SimpleGrantedAuthority> roles = user.getRoles().stream().map(role -> new SimpleGrantedAuthority(role.getName())).collect(Collectors.toList());
+        return new CustomSecurityUserDetails(user.getEmail(),user.getPassword(),roles,user.getProfile(),user.getName(),user.getId());
     }
 }

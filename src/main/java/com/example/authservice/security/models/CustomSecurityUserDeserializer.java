@@ -27,12 +27,15 @@ public class CustomSecurityUserDeserializer extends JsonDeserializer<CustomSecur
         Set<? extends GrantedAuthority> authorities = (Set)mapper.convertValue(jsonNode.get("authorities"), SIMPLE_GRANTED_AUTHORITY_SET);
         JsonNode passwordNode = this.readJsonNode(jsonNode, "password");
         String username = this.readJsonNode(jsonNode, "username").asText();
+        String profile = this.readJsonNode(jsonNode, "profile").asText();
+        String name = this.readJsonNode(jsonNode, "name").asText();
+        Long id = this.readJsonNode(jsonNode,"id").asLong();
         String password = passwordNode.asText("");
         boolean enabled = this.readJsonNode(jsonNode, "enabled").asBoolean();
         boolean accountNonExpired = this.readJsonNode(jsonNode, "accountNonExpired").asBoolean();
         boolean credentialsNonExpired = this.readJsonNode(jsonNode, "credentialsNonExpired").asBoolean();
         boolean accountNonLocked = this.readJsonNode(jsonNode, "accountNonLocked").asBoolean();
-        CustomSecurityUserDetails result = new CustomSecurityUserDetails(username, password, enabled, accountNonExpired, credentialsNonExpired, accountNonLocked, authorities);
+        CustomSecurityUserDetails result = new CustomSecurityUserDetails(username, password, enabled, accountNonExpired, credentialsNonExpired, accountNonLocked, authorities, profile, name, id);
 //        if (passwordNode.asText((String)null) == null) {
 //            result.eraseCredentials();
 //        }

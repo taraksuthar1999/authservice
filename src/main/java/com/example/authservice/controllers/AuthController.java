@@ -10,12 +10,22 @@ import com.example.authservice.services.AuthService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.oauth2.core.AuthorizationGrantType;
+import org.springframework.security.oauth2.core.ClientAuthenticationMethod;
+import org.springframework.security.oauth2.core.oidc.OidcScopes;
+import org.springframework.security.oauth2.server.authorization.client.RegisteredClient;
+import org.springframework.security.oauth2.server.authorization.client.RegisteredClientRepository;
+import org.springframework.security.oauth2.server.authorization.settings.ClientSettings;
 import org.springframework.web.bind.annotation.*;
 
 
 import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 
@@ -25,44 +35,31 @@ public class AuthController {
 
     private AuthService authService;
 
-    public AuthController(AuthService authService) {
+    private final RegisteredClientRepository registeredClientRepository;
+
+    public AuthController(AuthService authService, RegisteredClientRepository registeredClientRepository) {
         this.authService = authService;
+        this.registeredClientRepository = registeredClientRepository;
     }
 
 
     @PostMapping("/login")
     public ResponseEntity<ResponseDto<Object>> login(@RequestBody UserLoginRequestDto userLoginRequestDto){
-        try{
             String token = authService.login(userLoginRequestDto.toUser());
             ResponseDto<Object> responseDto = new ResponseDto<>();
             responseDto.setStatus(ResponseStatus.SUCCESS);
             responseDto.setMessage("logged in successfully.");
-
-
             return ResponseEntity.ok().header("Authorization",token).body(responseDto);
-        }catch(UserUnAuthorizedException e){
-            return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body(new ResponseDto<>(ResponseStatus.FAILURE,e.getMessage(),null));
-        } catch (Exception e){
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(new ResponseDto<>(ResponseStatus.FAILURE,"User login error. "+e.getMessage(),null));
-        }
-
     }
 
     @PostMapping("/signup")
     public ResponseEntity<ResponseDto<UserResponseDto>>  signUp(@RequestBody UserSignUpRequestDto userSignUpRequestDto){
-        try{
             User user = userSignUpRequestDto.toUser();
             User signedUpUser = authService.signUp(user);
             return ResponseEntity.ok()
                     .body(new ResponseDto<>(ResponseStatus.SUCCESS,
-                            "User created successfully.",
+                            "Registered successfully. Email sent for verification.",
                             UserResponseDto.FromUser(signedUpUser)));
-        }catch (Exception e){
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(new ResponseDto<>(ResponseStatus.FAILURE,"User sign up error. "+e.getMessage(),null));
-        }
     }
 
     @GetMapping("/verify")
@@ -75,8 +72,7 @@ public class AuthController {
                         null)
                     );
     }
-
-    @PostMapping("/validate")
+    @GetMapping("/validate")
     public String verify(){
         System.out.println("in validate method");
             return "validated";

@@ -9,6 +9,8 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 
 @Entity
@@ -28,5 +30,5 @@ public class User extends BaseModel {
     private Boolean isVerified = false;
     private String verifyToken;
     @ManyToMany(fetch = FetchType.EAGER)
-    private List<Roles> roles;
+    private List<Roles> roles = new ArrayList<>();
 }
