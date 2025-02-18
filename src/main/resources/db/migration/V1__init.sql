@@ -43,7 +43,8 @@ CREATE TABLE user
 CREATE TABLE user_roles
 (
     user_id  BIGINT NOT NULL,
-    roles_id BIGINT NOT NULL
+    roles_id BIGINT NOT NULL,
+    PRIMARY KEY (user_id, roles_id)
 );
 
 ALTER TABLE roles
