@@ -117,7 +117,7 @@ public class SpringSecurityConfiguration {
             throws Exception {
         http
                 .authorizeHttpRequests((authorize) ->
-                    authorize.requestMatchers("/auth/**").permitAll()
+                    authorize.requestMatchers("/auth/**","/.well-known/**").permitAll()
                     .anyRequest().authenticated()
                 )
                 .cors(Customizer.withDefaults())
