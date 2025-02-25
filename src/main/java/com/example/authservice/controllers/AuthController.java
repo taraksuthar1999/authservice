@@ -2,31 +2,13 @@ package com.example.authservice.controllers;
 
 import com.example.authservice.dtos.*;
 import com.example.authservice.dtos.ResponseStatus;
-import com.example.authservice.exceptions.UserUnAuthorizedException;
 import com.example.authservice.models.User;
-import com.example.authservice.repositories.UserRepository;
-import com.example.authservice.security.models.CustomSecurityUserDetails;
 import com.example.authservice.services.AuthService;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import org.springframework.http.HttpStatus;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.oauth2.core.AuthorizationGrantType;
-import org.springframework.security.oauth2.core.ClientAuthenticationMethod;
-import org.springframework.security.oauth2.core.oidc.OidcScopes;
-import org.springframework.security.oauth2.server.authorization.client.RegisteredClient;
 import org.springframework.security.oauth2.server.authorization.client.RegisteredClientRepository;
-import org.springframework.security.oauth2.server.authorization.settings.ClientSettings;
 import org.springframework.web.bind.annotation.*;
-
-
-import java.util.Set;
-import java.util.UUID;
-import java.util.stream.Collectors;
+import org.springframework.web.servlet.view.RedirectView;
 
 
 @RestController
@@ -34,6 +16,9 @@ import java.util.stream.Collectors;
 public class AuthController {
 
     private AuthService authService;
+
+    @Value("${VERIFIED_REDIRECT_URI}")
+    private String VERIFIED_REDIRECT_URI;
 
     private final RegisteredClientRepository registeredClientRepository;
 
@@ -63,14 +48,9 @@ public class AuthController {
     }
 
     @GetMapping("/verify")
-    public ResponseEntity<ResponseDto<Object>> verify(@RequestParam String token){
+    public RedirectView verify(@RequestParam String token){
             authService.verify(token);
-            return ResponseEntity.ok()
-                    .body(new ResponseDto<>(
-                        ResponseStatus.SUCCESS,
-                        "User verified successfully.",
-                        null)
-                    );
+            return new RedirectView(VERIFIED_REDIRECT_URI);
     }
     @GetMapping("/validate")
     public String verify(){
